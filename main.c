@@ -17,6 +17,7 @@
 		* use snprintf instead of strcpy, strncpy   *DONE*
 		* add necessary const to function arguments
 		* use MAX_FUFF instead of a number *DONE*
+		* why all the thread use same tid???
  * ************************************************************************/
 #include "myinclude.h"
 #include "time.h"
