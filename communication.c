@@ -1,12 +1,12 @@
 /* ************************************************************************
- *       Filename:  communicatioh.c
- *    Description:  
- *        Version:  1.0
- *        Created:  2010Äê03ÔÂ08ÈÕ 10Ê±28·Ö50Ãë
- *       Revision:  none
- *       Compiler:  gcc
- *         Author:  YOUR NAME (), 
- *        Company:  
+ * Filename: communicatioh.c
+ * Description:
+ * Version: 1.0
+ * Created: 2010å¹´03æœˆ08æ—¥ 10æ—¶28åˆ†50ç§’
+ * Revision: none
+ * Compiler: gcc
+ * Author: YOUR NAME (),
+ * Company:
  * ************************************************************************/
 #include "myinclude.h"
 #include "communication.h"
@@ -18,21 +18,21 @@ static int tcpfd = 0;
 static char user_name[20] = "";
 static char host_name[30] = "";
 
-//´´½¨UDP ºÍ TCP_Server Ì×½Ó¿Ú
+//åˆ›å»ºUDP å’Œ TCP_Server å¥—æ¥å£
 void create_server()
 {
 	int broadcast=1;
 	struct sockaddr_in addr = {AF_INET};
 	addr.sin_port = htons(PORT);
 	addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	//Create TCP socket  for SendFile Server
+	//Create TCP socket for SendFile Server
 	tcpfd = socket(AF_INET,SOCK_STREAM,0);
 	if(tcpfd < 0)
 	{
 		perror("Socket TCP");
 		exit(-1);
 	}
-	
+
 	if(bind(tcpfd, (struct sockaddr*)&addr, sizeof(addr))<0)
 	{
 		perror("Bind UDP");
@@ -46,7 +46,7 @@ void create_server()
 		perror("Socket UDP");
 		exit(-1);
 	}
-	
+
 	if(bind(udpfd, (struct sockaddr*)&addr, sizeof(addr))<0)
 	{
 		perror("Bind UDP");
@@ -55,16 +55,16 @@ void create_server()
 	setsockopt(udpfd,SOL_SOCKET,SO_BROADCAST,&broadcast, sizeof(int));
 }
 
-//ÉÏÏß¹ã²¥
+//ä¸Šçº¿å¹¿æ’­
 void broad_cast_online_info(void)
 {
 	char buf[100]="";
 	struct sockaddr_in addr = {AF_INET};
 	int t = time((time_t *)NULL);
 	int len = sprintf(buf,"1:%d:%s:%s:%ld:%s", \
-					  t,user_name,host_name,IPMSG_BR_ENTRY,user_name);
+				t,user_name,host_name,IPMSG_BR_ENTRY,user_name);
 	addr.sin_port = htons(PORT);
-//	addr.sin_addr.s_addr=inet_addr("255.255.255.255");	
+	// addr.sin_addr.s_addr=inet_addr("255.255.255.255");
 	addr.sin_addr.s_addr = htonl(-1);	//modified by wangyanjun in 10/7/9
 	sendto(udpfd, buf, len, 0, (struct sockaddr*)&addr,sizeof(addr));	
 }
@@ -89,35 +89,38 @@ char *host(void)
 	return host_name;
 }
 
-//ÏÂÏß¹ã²¥
+//ä¸‹çº¿å¹¿æ’­
 void ipmsg_exit(void)
 {
 	char buf[100]="";
 	struct sockaddr_in addr = {AF_INET};
 	int t = time((time_t *)NULL);
 	int len = sprintf(buf,"1:%d:%s:%s:%ld:%s", \
-					  t,user_name,host_name,IPMSG_BR_EXIT,user_name);
+				t,user_name,host_name,IPMSG_BR_EXIT,user_name);
 	addr.sin_port = htons(PORT);
-	addr.sin_addr.s_addr=inet_addr("255.255.255.255");		
+	addr.sin_addr.s_addr=inet_addr("255.255.255.255");	
 	sendto(udpfd, buf, len, 0, (struct sockaddr*)&addr,sizeof(addr));	
 }
 
-//ÉÏÏß²¢³õÊ¼»¯ÏµÍ³
-void online(char *user, char *host)
+//ä¸Šçº¿å¹¶åˆå§‹åŒ–ç³»ç»Ÿ
+void 
+online(const char *user, const char *host)
 {
-	strcpy(user_name,user);
-	strcpy(host_name,host);
+	//strcpy(user_name,user);
+	snprintf(user_name, sizeof(user_name), "%s", user);
+	//strcpy(host_name,host);
+	snprintf(user_host, sizeof(user_host), "%s", host);
 	create_server();
 	broad_cast_online_info();
 }
 
-//·¢ËÍÏûÏ¢
-void msg_send(char *msg, int len,  struct sockaddr_in addr)
+//å‘é€æ¶ˆæ¯
+void msg_send(char *msg, int len, struct sockaddr_in addr)
 {
 	sendto(udpfd, msg, len, 0, (struct sockaddr*)&addr, sizeof(addr));
 }
 
-//½ÓÊÕÎÄ¼ş(²ÎÊıÎª½ÓÊÕÎÄ¼şÁĞ±íÖĞµÄĞòºÅ)
+//æ¥æ”¶æ–‡ä»¶(å‚æ•°ä¸ºæ¥æ”¶æ–‡ä»¶åˆ—è¡¨ä¸­çš„åºå·)
 int recvfile(int id)
 {
 	int fd = 0;
@@ -126,32 +129,32 @@ int recvfile(int id)
 	unsigned long len = 0;
 	struct sockaddr_in addr = {AF_INET};
 	int s_addr = 0;
-	IPMSG_FILE *p = find_file(id);		//ÊÇ·ñ´æÔÚ¸ÃÎÄ¼ş
+	IPMSG_FILE *p = find_file(id);	//æ˜¯å¦å­˜åœ¨è¯¥æ–‡ä»¶
 	if( p==NULL	)
 	{
 		IPMSG_OUT_MSG_COLOR(
-		printf("no such file id\n");
-		)
-		return -1;
+					printf("no such file id\n");
+					)
+			return -1;
 	}
-	
-	s_addr = get_addr_by_name(p->user);	//¸ù¾İ·¢ËÍÕßĞÕÃû»ñÈ¡·¢ËÍÕâµØÖ·
+
+	s_addr = get_addr_by_name(p->user);	//æ ¹æ®å‘é€è€…å§“åè·å–å‘é€è¿™åœ°å€
 	if( s_addr == 0 )
 	{
 		IPMSG_OUT_MSG_COLOR(
-		printf("recv file error: user is not online!\n");
-		)
-		del_file(p, RECVFILE);
+					printf("recv file error: user is not online!\n");
+					)
+			del_file(p, RECVFILE);
 		return -1;
 	}
 
-	fd = socket(AF_INET, SOCK_STREAM, 0);	//´´½¨ÁÙÊ±TCP clientÓÃÀ´½ÓÊÕÎÄ¼ş
+	fd = socket(AF_INET, SOCK_STREAM, 0);	//åˆ›å»ºä¸´æ—¶TCP clientç”¨æ¥æ¥æ”¶æ–‡ä»¶
 	if( fd < 0 )
 	{
 		IPMSG_OUT_MSG_COLOR(
-		printf("recv file error: creat socket error!\n");
-		)
-		return -1;
+					printf("recv file error: creat socket error!\n");
+					)
+			return -1;
 	}
 	addr.sin_port = htons(PORT);
 	addr.sin_addr.s_addr = s_addr;
@@ -161,8 +164,8 @@ int recvfile(int id)
 		return -1;
 	}
 	len = sprintf(buf, "1:%ld:%s:%s:%ld:%lx:%d:0", time((time_t*)NULL),\
-			user(), host(), IPMSG_GETFILEDATA, p->pkgnum, p->num);
-	send(fd, buf, len, 0);		//·¢ËÍIPMSG_GETFILEDATA
+				user(), host(), IPMSG_GETFILEDATA, p->pkgnum, p->num);
+	send(fd, buf, len, 0);	//å‘é€IPMSG_GETFILEDATA
 	fp = fopen(p->name, "w");
 	if( fp==NULL )
 	{
@@ -170,29 +173,29 @@ int recvfile(int id)
 		return -1;
 	}
 	len = 0;
-	do				//½ÓÊÕÎÄ¼ş
+	do	//æ¥æ”¶æ–‡ä»¶
 	{
 		int rlen = recv(fd, buf, sizeof(buf), 0);
 		len += rlen;
 		IPMSG_OUT_MSG_COLOR(
-		printf("\rrecvlen=%d%%",  (int)((100*len)/p->size));
+					printf("\rrecvlen=%d%%", (int)((100*len)/p->size));
 
-		)
-		fflush(stdout);
+					)
+			fflush(stdout);
 		fwrite(buf, 1, rlen, fp);
 	}while(len < p->size);
-	
+
 	printf("\n");
-	close(fd);	//¹Ø±ÕTCP Client
-	fclose(fp); //¹Ø±ÕÎÄ¼ş
-	del_file(p, RECVFILE);	//´ÓÎÄ¼şÁĞ±íÖĞÉ¾³ı½ÓÊÕ¹ıµÄÎÄ¼ş
+	close(fd);	//å…³é—­TCP Client
+	fclose(fp); //å…³é—­æ–‡ä»¶
+	del_file(p, RECVFILE);	//ä»æ–‡ä»¶åˆ—è¡¨ä¸­åˆ é™¤æ¥æ”¶è¿‡çš„æ–‡ä»¶
 	return 0;
 }
 
-//·¢ËÍÎÄ¼şµÄÏß³Ì
+//å‘é€æ–‡ä»¶çš„çº¿ç¨‹
 void *sendfile_thread(void *arg)
 {
-	int fd = tcp_fd();	//»ñÈ¡TCP_ServerÌ×½Ó¿ÚÃèÊö·û
+	int fd = tcp_fd();	//è·å–TCP_Serverå¥—æ¥å£æè¿°ç¬¦
 	while(1)
 	{
 		struct sockaddr_in addr = {AF_INET};
@@ -203,27 +206,27 @@ void *sendfile_thread(void *arg)
 			perror("accept");
 			exit(1);
 		}
-		while(1)	// ·¢ËÍ¶à¸öÎÄ¼ş
+		while(1)	// å‘é€å¤šä¸ªæ–‡ä»¶
 		{
 			IPMSG_FILE *p = NULL;
 			FILE *fp = NULL;
 			IPMSG_USER temp;
 			long pkgnum = 0 ;
-			char edition[100]=""; 
+			char edition[100]="";
 			long oldpkgnum = 0 ;
 			long cmd = 0;
 			int filenum = 0;
 			char buf[1400]="";
-			int sendsize = 0;			
-			//½ÓÊÕIPMSG_GETFILEDATA
+			int sendsize = 0;	
+			//æ¥æ”¶IPMSG_GETFILEDATA
 			if(recv(clifd, buf, sizeof(buf), 0)==0)
-				break;
+			  break;
 			sscanf(buf, "%[^:]:%ld:%[^:]:%[^:]:%ld:%lx:%x",edition, &pkgnum, temp.name, temp.host, &cmd,\
-					&oldpkgnum, &filenum);
-			//ÊÇ·ñÊÇIPMSG_GETFILEDATA
+						&oldpkgnum, &filenum);
+			//æ˜¯å¦æ˜¯IPMSG_GETFILEDATA
 			if((GET_MODE(cmd)&IPMSG_GETFILEDATA)!=IPMSG_GETFILEDATA)
-				break;
-			//»ñÈ¡Ö®Ç°·¢ËÍµÄÎÄ¼şĞÅÏ¢
+			  break;
+			//è·å–ä¹‹å‰å‘é€çš„æ–‡ä»¶ä¿¡æ¯
 			if ((p = getfileinfo(oldpkgnum, filenum))==NULL)
 			{
 				return NULL;
@@ -231,30 +234,30 @@ void *sendfile_thread(void *arg)
 			if( (fp=fopen(p->name, "r"))==NULL )
 			{
 				IPMSG_OUT_MSG_COLOR(
-				printf("senderror: no such file: %s\n", p->name);
-				)
-				return NULL;
-			}			
-			do	//·¢ËÍÎÄ¼ş
+							printf("senderror: no such file: %s\n", p->name);
+							)
+					return NULL;
+			}	
+			do	//å‘é€æ–‡ä»¶
 			{
 				int size = fread(buf, 1, sizeof(buf), fp);
 				send(clifd, buf, size, 0);
 				sendsize += size;
 			}while(sendsize < p->size);
-			fclose(fp);				//¹Ø±ÕÎÄ¼ş
-			del_file(p, SENDFILE);	//´Ó·¢ËÍÎÄ¼şÁ´±íÖĞÉ¾³ıÎÄ¼ş
-		}//end wile1	 // Ñ­»··¢ËÍ¶à¸öÎÄ¼ş
-		close(clifd);	 //¹Ø±ÕÌ×½Ó¿ÚµÈ´ıÏÂ¸öÓÃ»§Á¬½Ó
+			fclose(fp);	//å…³é—­æ–‡ä»¶
+			del_file(p, SENDFILE);	//ä»å‘é€æ–‡ä»¶é“¾è¡¨ä¸­åˆ é™¤æ–‡ä»¶
+		}//end wile1 // å¾ªç¯å‘é€å¤šä¸ªæ–‡ä»¶
+		close(clifd);	//å…³é—­å¥—æ¥å£ç­‰å¾…ä¸‹ä¸ªç”¨æˆ·è¿æ¥
 	}//end while
 	return NULL;
 }
 
-//½ÓÊÕÏûÏ¢Ïß³Ì£¬½ÓÊÕÆäËû¿Í»§¶Ë·¢ËÍµÄUDPÊı¾İ
+//æ¥æ”¶æ¶ˆæ¯çº¿ç¨‹ï¼Œæ¥æ”¶å…¶ä»–å®¢æˆ·ç«¯å‘é€çš„UDPæ•°æ®
 void *recv_msg_thread(void *arg)
 {
 	while(1)
 	{
-		char buf[500]="";		
+		char buf[500]="";	
 		char edition[100]="";
 		struct sockaddr_in addr = {AF_INET};
 		unsigned int addrlen = sizeof(addr);
@@ -264,70 +267,70 @@ void *recv_msg_thread(void *arg)
 		char msg[100]="";
 		int t = 0;
 		char *p = NULL;
-		IPMSG_USER temp;			
+		IPMSG_USER temp;	
 		len = recvfrom(udp_fd(), buf, sizeof(buf), 0, (struct sockaddr*)&addr, &addrlen);
 		sscanf(buf, "%[^:]:%ld:%[^:]:%[^:]:%ld",edition, &pkgnum, temp.name, temp.host, &cmd);
-		
-		p = strrchr(buf, ':');			//²éÕÒ¸½¼ÓĞÅÏ¢
-		memcpy(msg, p+1, len-(p-buf));	//½«¸½¼ÓĞÅÏ¢·ÅÈëmsgÖĞ
-		
+
+		p = strrchr(buf, ':');	//æŸ¥æ‰¾é™„åŠ ä¿¡æ¯
+		memcpy(msg, p+1, len-(p-buf));	//å°†é™„åŠ ä¿¡æ¯æ”¾å…¥msgä¸­
+
 		temp.s_addr = addr.sin_addr.s_addr;
 		switch(GET_MODE(cmd))
 		{
-		case IPMSG_BR_ENTRY:
-			t = time((time_t *)NULL);
-			len = sprintf(buf,"1:%d:%s:%s:%ld:%s",t,user(),host(),IPMSG_ANSENTRY,user());
-			sendto(udp_fd(),buf,len,0,(struct sockaddr*)&addr,sizeof(addr));
-		case IPMSG_ANSENTRY:
-			add_user(temp);
-			break;
-		case IPMSG_SENDMSG:
-			if(msg[0]!=0)
-			{
-				IPMSG_OUT_MSG_COLOR(
-					printf("\r[recv msg from: %s ]#\n%s\n", temp.name, msg);
-				)
-				write(1,"\rIPMSG:",7);
-			}
-			if((cmd&IPMSG_SENDCHECKOPT)==IPMSG_SENDCHECKOPT)
-			{
-				char buf[50]="";
+			case IPMSG_BR_ENTRY:
 				t = time((time_t *)NULL);
-				int len = sprintf(buf,"1:%d:%s:%s:%ld:%ld",t,user(),host(),IPMSG_RECVMSG, pkgnum);
+				len = sprintf(buf,"1:%d:%s:%s:%ld:%s",t,user(),host(),IPMSG_ANSENTRY,user());
 				sendto(udp_fd(),buf,len,0,(struct sockaddr*)&addr,sizeof(addr));
-			}
-			if((cmd&IPMSG_FILEATTACHOPT)==IPMSG_FILEATTACHOPT)
-			{
-				char *p = msg+strlen(msg)+1;
-				//printf("filemsg=%s\n",p);
-				char *fileopt= strtok(p, "\a");		//fileoptÖ¸ÏòµÚÒ»¸öÎÄ¼şÊôĞÔ
-				do{	//Ñ­»·ÌáÈ¡ÎÄ¼şĞÅÏ¢
-					IPMSG_FILE ftemp;
-					sscanf(fileopt, "%d:%[^:]:%lx:%lx", &ftemp.num, ftemp.name, &ftemp.size, &ftemp.ltime);	
-					strcpy(ftemp.user, temp.name);
-					ftemp.pkgnum = pkgnum;
-					add_file(ftemp, RECVFILE);
-					fileopt = strtok(NULL, "\a");	//fileoptÖ¸ÏòÏÂÒ»¸öÎÄ¼şÊôĞÔ
-				}while(fileopt!=NULL);
-				IPMSG_OUT_MSG_COLOR(
-				printf("\r<<<Recv file from %s!>>>\n", temp.name);
-				)
-				write(1,"\rIPMSG:",7);
-			}
-			break;
-		case IPMSG_RECVMSG:
-			{
-				IPMSG_OUT_MSG_COLOR(
-				printf("\r%s have receved your msg!\n", temp.name);
-				)
-				write(1,"\rIPMSG:",7);
-			}
-			break;			
-		case IPMSG_BR_EXIT:
-			del_user(temp);
-			break;
-		default :
-			break;			
+			case IPMSG_ANSENTRY:
+				add_user(temp);
+				break;
+			case IPMSG_SENDMSG:
+				if(msg[0]!=0)
+				{
+					IPMSG_OUT_MSG_COLOR(
+								printf("\r[recv msg from: %s ]#\n%s\n", temp.name, msg);
+								)
+						write(1,"\rIPMSG:",7);
+				}
+				if((cmd&IPMSG_SENDCHECKOPT)==IPMSG_SENDCHECKOPT)
+				{
+					char buf[50]="";
+					t = time((time_t *)NULL);
+					int len = sprintf(buf,"1:%d:%s:%s:%ld:%ld",t,user(),host(),IPMSG_RECVMSG, pkgnum);
+					sendto(udp_fd(),buf,len,0,(struct sockaddr*)&addr,sizeof(addr));
+				}
+				if((cmd&IPMSG_FILEATTACHOPT)==IPMSG_FILEATTACHOPT)
+				{
+					char *p = msg+strlen(msg)+1;
+					//printf("filemsg=%s\n",p);
+					char *fileopt= strtok(p, "\a");	//fileoptæŒ‡å‘ç¬¬ä¸€ä¸ªæ–‡ä»¶å±æ€§
+					do{	//å¾ªç¯æå–æ–‡ä»¶ä¿¡æ¯
+						IPMSG_FILE ftemp;
+						sscanf(fileopt, "%d:%[^:]:%lx:%lx", &ftemp.num, ftemp.name, &ftemp.size, &ftemp.ltime);	
+						strcpy(ftemp.user, temp.name);
+						ftemp.pkgnum = pkgnum;
+						add_file(ftemp, RECVFILE);
+						fileopt = strtok(NULL, "\a");	//fileoptæŒ‡å‘ä¸‹ä¸€ä¸ªæ–‡ä»¶å±æ€§
+					}while(fileopt!=NULL);
+					IPMSG_OUT_MSG_COLOR(
+								printf("\r<<<Recv file from %s!>>>\n", temp.name);
+								)
+						write(1,"\rIPMSG:",7);
+				}
+				break;
+			case IPMSG_RECVMSG:
+				{
+					IPMSG_OUT_MSG_COLOR(
+								printf("\r%s have receved your msg!\n", temp.name);
+								)
+						write(1,"\rIPMSG:",7);
+				}
+				break;	
+			case IPMSG_BR_EXIT:
+				del_user(temp);
+				break;
+			default :
+				break;	
 		}
 	}
 	return NULL;

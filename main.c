@@ -1,18 +1,22 @@
 /* ************************************************************************
- *       Filename:  ipmsg.c
- *    Description:  main.c
- *        Version:  1.0
- *        Created:  2010Äê03ÔÂ08ÈÕ 10Ê±28·Ö50Ãë
- *       Revision:  none
- *       Compiler:  gcc
- *         Author:  YOUR NAME (), 
- *        Company:  
- 
- 
- *     Maintainer: wenhao  v1.1 2011-11-10
-				   1. ĞŞÕıÔÚÊäÈë×´Ì¬Ê±,ÊäÈë¿Õ¸ñ³ö¶Î´íÎóµÄBUG
-				   2. ĞŞÕıÊÕµ½SENDCHECKOPTÊ±»Ø¸´°ü±àºÅÄ¬ÈÏÎª0µÄBUG
-				   3. ĞŞÕıhelp´òÓ¡ÄÚÈİ¹æ·¶ÎÊÌâ
+ * Filename: ipmsg.c
+ * Description: main.c
+ * Version: 1.0
+ * Created: 2010å¹´03æœˆ08æ—¥ 10æ—¶28åˆ†50ç§’
+ * Revision: none
+ * Compiler: gcc
+ * Author: YOUR NAME (),
+ * Company:
+ * Maintainer: wenhao v1.1 2011-11-10
+	1. ä¿®æ­£åœ¨è¾“å…¥çŠ¶æ€æ—¶,è¾“å…¥ç©ºæ ¼å‡ºæ®µé”™è¯¯çš„BUG
+	2. ä¿®æ­£æ”¶åˆ°SENDCHECKOPTæ—¶å›å¤åŒ…ç¼–å·é»˜è®¤ä¸º0çš„BUG
+	3. ä¿®æ­£helpæ‰“å°å†…å®¹è§„èŒƒé—®é¢˜
+ * Maintainer: hongjin.cao 2014-5-19
+	TODO:
+		* get user host from command line (argv)
+		* use snprintf instead of strcpy, strncpy   *DONE*
+		* add necessary const to function arguments
+		* use MAX_FUFF instead of a number *DONE*
  * ************************************************************************/
 #include "myinclude.h"
 #include "time.h"
@@ -24,17 +28,17 @@ int main(int argc, char *argv[])
 {
 	pthread_t tid;	
 	online("Sunplusapp", "root_teacher");
-	
-	//½ÓÊÕÏûÏ¢Ïß³Ì£¬½ÓÊÕÆäËû¿Í»§¶Ë·¢ËÍµÄUDPÊı¾İ
+
+	//æ¥æ”¶æ¶ˆæ¯çº¿ç¨‹ï¼Œæ¥æ”¶å…¶ä»–å®¢æˆ·ç«¯å‘é€çš„UDPæ•°æ®
 	pthread_create(&tid, NULL, recv_msg_thread, NULL);
-	
-	//ÓÃ»§½çÃæÏß³Ì£¬´¦ÀíÓÃ»§ÊäÈëµÄÃüÁî
+
+	//ç”¨æˆ·ç•Œé¢çº¿ç¨‹ï¼Œå¤„ç†ç”¨æˆ·è¾“å…¥çš„å‘½ä»¤
 	pthread_create(&tid, NULL, user_interface, NULL);
-	
-	//·¢ËÍÎÄ¼şÏß³Ì£¬µÈ´ıÆäËû¿Í»§¶Ë½ÓÊÕÎÄ¼ş²¢¸ºÔğÏòÆä´«ËÍÎÄ¼ş
+
+	//å‘é€æ–‡ä»¶çº¿ç¨‹ï¼Œç­‰å¾…å…¶ä»–å®¢æˆ·ç«¯æ¥æ”¶æ–‡ä»¶å¹¶è´Ÿè´£å‘å…¶ä¼ é€æ–‡ä»¶
 	pthread_create(&tid, NULL, sendfile_thread, NULL);
-	//Ö÷Ïß³Ì²»ÄÜÍË³ö
-	
+	//ä¸»çº¿ç¨‹ä¸èƒ½é€€å‡º
+
 	pthread_join(tid, NULL);
 	return 0;	
 }

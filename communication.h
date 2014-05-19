@@ -1,40 +1,40 @@
 /* ************************************************************************
- *       Filename:  communicatioh.h
- *    Description:  
- *        Version:  1.0
- *        Created:  2010Äê03ÔÂ08ÈÕ 10Ê±28·Ö50Ãë
- *       Revision:  none
- *       Compiler:  gcc
- *         Author:  YOUR NAME (), 
- *        Company:  
- * ************************************************************************/
+* Filename: communicatioh.h
+* Description:
+* Version: 1.0
+* Created: 2010å¹´03æœˆ08æ—¥ 10æ—¶28åˆ†50ç§’
+* Revision: none
+* Compiler: gcc
+* Author: YOUR NAME (),
+* Company:
+* ************************************************************************/
 #ifndef _COMMUNICATION_H_
 #define _COMMUNICATION_H_
 
 #include "myinclude.h"
 #define PORT 2425
+#define MAX_BUFF 256
 
-//½ÓÊÕÏûÏ¢Ïß³Ì£¬½ÓÊÕÆäËû¿Í»§¶Ë·¢ËÍµÄUDPÊı¾İ
+//æ¥æ”¶æ¶ˆæ¯çº¿ç¨‹ï¼Œæ¥æ”¶å…¶ä»–å®¢æˆ·ç«¯å‘é€çš„UDPæ•°æ®
 void *recv_msg_thread(void *arg);
-//·¢ËÍÎÄ¼şÏß³Ì£¬µÈ´ıÆäËû¿Í»§¶Ë½ÓÊÕÎÄ¼ş²¢¸ºÔğÏòÆä´«ËÍÎÄ¼ş
+//å‘é€æ–‡ä»¶çº¿ç¨‹ï¼Œç­‰å¾…å…¶ä»–å®¢æˆ·ç«¯æ¥æ”¶æ–‡ä»¶å¹¶è´Ÿè´£å‘å…¶ä¼ é€æ–‡ä»¶
 void *sendfile_thread(void *arg);
 
-//ÉÏÏß
-void online(char *user, char *host);
-//ÏÂÏß
+//ä¸Šçº¿
+void online(const char *user, const char *host);
+//ä¸‹çº¿
 void ipmsg_exit(void);
 
-//·¢ËÍĞÅÏ¢
+//å‘é€ä¿¡æ¯
 void msg_send(char *msg, int len, struct sockaddr_in addr);
-//½ÓÊÕÎÄ¼ş(²ÎÊıÎª½ÓÊÕÎÄ¼şÁĞ±íÖĞµÄĞòºÅ)
+//æ¥æ”¶æ–‡ä»¶(å‚æ•°ä¸ºæ¥æ”¶æ–‡ä»¶åˆ—è¡¨ä¸­çš„åºå·)
 int recvfile(int id);
 
-//»ñÈ¡ÓÃ»§Ãû
+//è·å–ç”¨æˆ·å
 char *user(void);
-//»ñÈ¡Ö÷»úÃû
+//è·å–ä¸»æœºå
 char *host(void);
-//»ñÈ¡UDPÃèÊö·û
+//è·å–UDPæè¿°ç¬¦
 int udp_fd(void);
 
-#endif	//_COMMUNICATION_H_
-
+#endif //_COMMUNICATION_H_
