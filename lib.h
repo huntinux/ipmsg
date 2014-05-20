@@ -12,5 +12,7 @@ Date: 2014-5-20
 
 #define handle_error(msg) \
 	do { perror(msg); exit(EXIT_FAILURE); } while (0)
+#define handle_warning(msg) \
+	do { fprintf(stderr, "%s", msg); } while(0)
 
 #endif // _LIB_H
