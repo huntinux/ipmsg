@@ -1,42 +1,42 @@
 /* ************************************************************************
- *       Filename:  user_interface.c
- *    Description:  
- *        Version:  1.0
- *        Created:  2010Äê03ÔÂ08ÈÕ 10Ê±28·Ö50Ãë
- *       Revision:  none
- *       Compiler:  gcc
- *         Author:  YOUR NAME (), 
- *        Company:  
+ * Filename: user_interface.c
+ * Description:
+ * Version: 1.0
+ * Created: 2010å¹´03æœˆ08æ—¥ 10æ—¶28åˆ†50ç§’
+ * Revision: none
+ * Compiler: gcc
+ * Author: YOUR NAME (),
+ * Company:
  * ************************************************************************/
 #include "myinclude.h"
 #include "user_manager.h"
 #include "file_manager.h"
 #include "user_interface.h"
 #include "communication.h"
-//°ïÖú²Ëµ¥
+//å¸®åŠ©èœå•
 char *help= "*********************************************************************************\n"\
-			"* send/say [username]		        :    ·¢ËÍÏûÏ¢		        *\n"\
-			"* sendfile [username] [filename...]  	:    ·¢ËÍÎÄ¼ş		        *\n"\
-			"* getfile  [filenum]			:    ½ÓÊÕÎÄ¼ş		        *\n"\
-			"* list/ls				:    ´òÓ¡ÓÃ»§ÁĞ±í		*\n"\
-			"* list/ls file				:    ´òÓ¡½ÓÊÕÎÄ¼şÁĞ±í		*\n"\
-			"* clear/cls				:    ÇåÆÁ			*\n"\
-			"* help					£º   °ïÖú			*\n"\
-			"* exit/quit				:    ÍÆ³ö			*\n"\
-			"**********************************************************************************\n"
-			;
-//º¯ÊıÖ¸Õë
-typedef void (*FUN)(int argc, char *argv[]);
+			 "* send/say [username] : å‘é€æ¶ˆæ¯*\n"\
+			 "* sendfile [username] [filename...] : å‘é€æ–‡ä»¶*\n"\
+			 "* getfile [filenum] : æ¥æ”¶æ–‡ä»¶*\n"\
+			 "* list/ls : æ‰“å°ç”¨æˆ·åˆ—è¡¨*\n"\
+			 "* list/ls file : æ‰“å°æ¥æ”¶æ–‡ä»¶åˆ—è¡¨*\n"\
+			 "* clear/cls : æ¸…å±*\n"\
+			 "* help ï¼š å¸®åŠ©*\n"\
+			 "* exit/quit : æ¨å‡º*\n"\
+			 "**********************************************************************************\n"
+			 ;
+			 //å‡½æ•°æŒ‡é’ˆ
+			 typedef void (*FUN)(int argc, char *argv[]);
 
-//ÃüÁî½á¹¹Ìå
-typedef struct cmd
+			 //å‘½ä»¤ç»“æ„ä½“
+			 typedef struct cmd
 {
-	char *name;		//ÃüÁîÃû³Æ
-	FUN fun;		//ÃüÁî´¦Àíº¯Êı
+	char *name;	//å‘½ä»¤åç§°
+	FUN fun;	//å‘½ä»¤å¤„ç†å‡½æ•°
 }CMD;
 
 
-//·¢ËÍÃüÁî
+//å‘é€å‘½ä»¤
 //send [user] [msg]
 //sendfile [user] [file1] [file2] ...
 void send_fun(int argc, char *argv[])
@@ -45,49 +45,49 @@ void send_fun(int argc, char *argv[])
 	int s_addr = 0;
 	char name[20] = "";
 	char buf[100] = "";	
-	
+
 	char sendbuf[200]="";
 	char temp[100]="";
 	int templen = 0;
 	long t = time((time_t*)NULL);
 	int len = sprintf(sendbuf, "1:%ld:%s:%s", t, user(), host());
-	
-	if(argc < 2)	//²ÎÊıĞ¡ÓÚ2£¬ÔòĞèÊäÈëÓÃ»§Ãû
+
+	if(argc < 2)	//å‚æ•°å°äº2ï¼Œåˆ™éœ€è¾“å…¥ç”¨æˆ·å
 	{
 		list();
 		IPMSG_OUT_MSG_COLOR(
-		printf("please input user name:");
-		)
-		fgets(name, sizeof(name), stdin);
+					printf("please input user name:");
+					)
+			fgets(name, sizeof(name), stdin);
 		name[strlen(name)-1] = 0;
-		argv[1] = name; 
+		argv[1] = name;
 	}
-	
+
 	s_addr = get_addr_by_name(argv[1]);
 	if(s_addr == 0)
 	{
 		printf("error: no this user:\"%s\"!\n", argv[1]);
 		return ;
 	}
-	if(argc < 3)	//²ÎÊıĞ¡ÓÚ2£¬ÔòĞèÊäÈëÏûÏ¢»òÎÄ¼şÃû
+	if(argc < 3)	//å‚æ•°å°äº2ï¼Œåˆ™éœ€è¾“å…¥æ¶ˆæ¯æˆ–æ–‡ä»¶å
 	{
 		if(strcmp(argv[0], "sendfile")==0)
 		{
-			IPMSG_OUT_MSG_COLOR(			
-			printf("please input filename:");
-			)
+			IPMSG_OUT_MSG_COLOR(	
+						printf("please input filename:");
+						)
 		}
 		else
 		{
 			IPMSG_OUT_MSG_COLOR(	
-			printf("please input message:");
-			)
+						printf("please input message:");
+						)
 		}
 		fgets(buf, sizeof(buf), stdin);
 		buf[strlen(buf)-1] = 0;
 		argv[2] = buf;
-		
-		//Èç¹ûÊÇ·¢ËÍÎÄ¼şÔòĞèÇĞ¸îÊäÈëµÄ¶à¸öÎÄ¼şÃû
+
+		//å¦‚æœæ˜¯å‘é€æ–‡ä»¶åˆ™éœ€åˆ‡å‰²è¾“å…¥çš„å¤šä¸ªæ–‡ä»¶å
 		if( argv[0][4]=='f' )	
 		{
 			int i = 2;
@@ -95,14 +95,14 @@ void send_fun(int argc, char *argv[])
 			while((argv[i]=strtok(argv[i], " \t"))!=NULL) i++;
 		}
 	}	
-	
+
 	if(strcmp(argv[0], "sendfile")==0)
 	{
 		int i = 2;
 		char *fileopt = NULL;
 		templen = sprintf(temp, ":%ld:%c",IPMSG_SENDMSG|IPMSG_SENDCHECKOPT|IPMSG_FILEATTACHOPT,0);
 		fileopt = temp+templen;
-		//Ìí¼Ó¶à¸öÎÄ¼şÊôĞÔ
+		//æ·»åŠ å¤šä¸ªæ–‡ä»¶å±æ€§
 		while(argv[i]!=NULL)
 		{
 			len = getfileopt(fileopt, argv[i], t, i-2);
@@ -115,101 +115,101 @@ void send_fun(int argc, char *argv[])
 	{
 		templen = sprintf(temp, ":%ld:%s", IPMSG_SENDMSG|IPMSG_SENDCHECKOPT, argv[2]);
 	}
-	
+
 	memcpy(sendbuf+len, temp, templen);
-	
+
 	addr.sin_port = htons(PORT);
 	addr.sin_addr.s_addr = s_addr;
 	msg_send(sendbuf,len+templen, addr);
 }
 
-//½ÓÊÕÎÄ¼ş
-//ÃüÁî¸ñÊ½: getfile num
-// num :	ÎÄ¼şÔÚÁ´±íÖĞµÄĞòºÅ£¬¿ÉÓÃ¡°ls file¡±ÃüÁî²é¿´
+//æ¥æ”¶æ–‡ä»¶
+//å‘½ä»¤æ ¼å¼: getfile num
+// num : æ–‡ä»¶åœ¨é“¾è¡¨ä¸­çš„åºå·ï¼Œå¯ç”¨â€œls fileâ€å‘½ä»¤æŸ¥çœ‹
 void getfile_fun(int argc, char *argv[])
 {
 	int id = 0;
 	if( argc!=2 )
 	{
 		IPMSG_OUT_MSG_COLOR(
-		printf("error cmd param\n");
-		printf("command: getfile num\n");
-		)
-		return ;
+					printf("error cmd param\n");
+					printf("command: getfile num\n");
+					)
+			return ;
 	}
 	if((id=atoi(argv[1]))<0)
 	{
 		IPMSG_OUT_MSG_COLOR(
-		printf("No such file!\n");
-		)
-		return ;
+					printf("No such file!\n");
+					)
+			return ;
 	}
 	recvfile(id);
 }
 
-//´òÓ¡ÓÃ»§»òÎÄ¼şÁĞ±í
-//ls	  : ´òÓ¡ÓÃ»§ÁĞ±í
-//ls file : ´òÓ¡½ÓÊÕÎÄ¼şÁĞ±í
+//æ‰“å°ç”¨æˆ·æˆ–æ–‡ä»¶åˆ—è¡¨
+//ls : æ‰“å°ç”¨æˆ·åˆ—è¡¨
+//ls file : æ‰“å°æ¥æ”¶æ–‡ä»¶åˆ—è¡¨
 void list_fun(int argc, char *argv[])
 {
 	if( argv[1]==NULL )
-		list();				//ÓÃ»§ÁĞ±í
+	  list();	//ç”¨æˆ·åˆ—è¡¨
 	else if(strcmp("file", argv[1])==0)
-		file_list();		//ÎÄ¼şÁĞ±í
-	else 
-		printf("command not find!\n");
+	  file_list();	//æ–‡ä»¶åˆ—è¡¨
+	else
+	  printf("command not find!\n");
 }
 
-// °ïÖúÃüÁî
+// å¸®åŠ©å‘½ä»¤
 void help_fun(int argc, char *argv[])
 {
-	//´òÓ¡°ïÖú²Ëµ¥
+	//æ‰“å°å¸®åŠ©èœå•
 	IPMSG_OUT_MSG_COLOR(
-	printf("%s", help);	
-	)
+				printf("%s", help);	
+				)
 }
 
-//ÍË³öÃüÁî
+//é€€å‡ºå‘½ä»¤
 void exit_fun(int argc, char *argv[])
 {
 	ipmsg_exit();
-//	free_link();
+	// free_link();
 	exit(1);
 }
 
-//ÇåÆÁÃüÁî
+//æ¸…å±å‘½ä»¤
 void clear_fun(int argc, char *argv[])
 {
 	write(1, "\033[2J\033[0;0H", 10);
 }
 
-//ÃüÁîÊı×é£ºÓÃÀ´±£´æ ÃüÁîÃû ºÍ ´¦Àíº¯ÊıÃû
+//å‘½ä»¤æ•°ç»„ï¼šç”¨æ¥ä¿å­˜ å‘½ä»¤å å’Œ å¤„ç†å‡½æ•°å
 CMD cmdlist[]={	
-				{"send", send_fun},
-				{"say", send_fun},					
-				{"sendfile", send_fun},		
-				{"getfile", getfile_fun},
-				{"list", list_fun},		
-				{"ls", list_fun},	
-				{"help", help_fun},
-				{"exit", exit_fun},
-				{"quit", exit_fun},
-				{"clear", clear_fun},			
-				{"cls", clear_fun}	
-			};
+	{"send", send_fun},
+	{"say", send_fun},	
+	{"sendfile", send_fun},	
+	{"getfile", getfile_fun},
+	{"list", list_fun},	
+	{"ls", list_fun},	
+	{"help", help_fun},
+	{"exit", exit_fun},
+	{"quit", exit_fun},
+	{"clear", clear_fun},	
+	{"cls", clear_fun}	
+};
 
-//·ÖÎö¡¢·ÖÅäÃüÁî
+//åˆ†æã€åˆ†é…å‘½ä»¤
 int exec_cmd(char *cmd)
 {
 	char *argv[10] = {NULL};
 	int argc = 0;
 	int i = 0;
 	if(strlen(cmd)==0)
-		return 0;
-		
+	  return 0;
+
 	argv[0] = cmd;
 	while((argv[argc]=strtok(argv[argc], " \t"))!=NULL) argc++;
-	
+
 	/*add by wenhao*/
 	if(argc == 0){
 		return -1;
@@ -218,16 +218,16 @@ int exec_cmd(char *cmd)
 
 	for (i=0;i<sizeof(cmdlist)/sizeof(CMD);i++)
 	{
-		//²éÕÒÃüÁî
+		//æŸ¥æ‰¾å‘½ä»¤
 		if (strcmp(cmdlist[i].name, argv[0])==0)
 		{
-			//Ö´ĞĞÃüÁî
+			//æ‰§è¡Œå‘½ä»¤
 			cmdlist[i].fun(argc, argv);
 			return 0;
 		}
 	}	
 	return -1;
-}			
+}	
 
 void *user_interface(void *arg)
 {
@@ -241,10 +241,9 @@ void *user_interface(void *arg)
 		if(exec_cmd(buf) < 0)
 		{
 			IPMSG_OUT_MSG_COLOR(
-			printf("command not find!\n");
-			)
+						printf("command not find!\n");
+						)
 		}
 	}
 	return NULL;
 }
-

@@ -18,6 +18,9 @@
 		* add necessary const to function arguments
 		* use MAX_FUFF instead of a number *DONE*
 		* why all the thread use same tid???
+		* add log
+		* add history of communication
+		* add gui
  * ************************************************************************/
 #include "myinclude.h"
 #include "time.h"
@@ -28,18 +31,21 @@
 int main(int argc, char *argv[])
 {
 	pthread_t tid;	
+
+	// 初始化系统
 	online("Sunplusapp", "root_teacher");
 
-	//接收消息线程，接收其他客户端发送的UDP数据
+	// 接收消息线程，接收其他客户端发送的UDP数据
 	pthread_create(&tid, NULL, recv_msg_thread, NULL);
 
-	//用户界面线程，处理用户输入的命令
+	// 用户界面线程，处理用户输入的命令
 	pthread_create(&tid, NULL, user_interface, NULL);
 
-	//发送文件线程，等待其他客户端接收文件并负责向其传送文件
+	// 发送文件线程，等待其他客户端接收文件并负责向其传送文件
 	pthread_create(&tid, NULL, sendfile_thread, NULL);
-	//主线程不能退出
 
+	// 主线程不能退出
 	pthread_join(tid, NULL);
+
 	return 0;	
 }

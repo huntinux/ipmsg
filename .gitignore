@@ -1,4 +1,5 @@
 *.out
 *.o
 ipmsg
+*.swp
 
