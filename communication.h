@@ -13,7 +13,8 @@
 
 #include "myinclude.h"
 #define PORT 2425
-#define MAX_BUFF 256
+#define BUFF_MAX 256
+#define LISTEN_MAX 10
 
 //接收消息线程，接收其他客户端发送的UDP数据
 void *recv_msg_thread(void *arg);

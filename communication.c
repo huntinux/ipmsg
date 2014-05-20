@@ -12,60 +12,61 @@
 #include "communication.h"
 #include "user_manager.h"
 #include "file_manager.h"
+#include "lib.h"
 
 static int udpfd = 0;
 static int tcpfd = 0;
-static char user_name[20] = "";
-static char host_name[30] = "";
+static char user_name[BUFF_MAX] = "";
+static char host_name[BUFF_MAX] = "";
 
 //创建UDP 和 TCP_Server 套接口
-void create_server()
+void 
+create_server()
 {
-	int broadcast=1;
-	struct sockaddr_in addr = {AF_INET};
+	int broadcast = 1;
+	struct sockaddr_in addr;
+
+	// Create TCP socket for SendFile Server
+	tcpfd = socket(AF_INET,SOCK_STREAM,0);
+	if( tcpfd < 0 )
+		handle_error("Socket TCP");
+
+	// bind addr to tcp socket
+	memset(&addr, 0, sizeof(struct sockaddr_in));
+	addr.sin_family = AF_INET;
 	addr.sin_port = htons(PORT);
 	addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	//Create TCP socket for SendFile Server
-	tcpfd = socket(AF_INET,SOCK_STREAM,0);
-	if(tcpfd < 0)
-	{
-		perror("Socket TCP");
-		exit(-1);
-	}
+	if( bind(tcpfd, (struct sockaddr*)&addr, sizeof(addr)) < 0 )
+		handle_error("Bind UDP");
 
-	if(bind(tcpfd, (struct sockaddr*)&addr, sizeof(addr))<0)
-	{
-		perror("Bind UDP");
-		exit(1);
-	}
-	listen(tcpfd, 10);
-	//Create UDP socket for commucation
-	udpfd = socket(AF_INET,SOCK_DGRAM,0);
+	// listen
+	listen(tcpfd, LISTEN_MAX);
+
+	// Create UDP socket for commucation
+	udpfd = socket(AF_INET, SOCK_DGRAM, 0);
 	if(udpfd < 0)
-	{
-		perror("Socket UDP");
-		exit(-1);
-	}
+		handle_error("Socket UDP");
 
-	if(bind(udpfd, (struct sockaddr*)&addr, sizeof(addr))<0)
-	{
-		perror("Bind UDP");
-		exit(1);
-	}
-	setsockopt(udpfd,SOL_SOCKET,SO_BROADCAST,&broadcast, sizeof(int));
+	// bind addr to udp socket
+	if( bind(udpfd, (struct sockaddr*)&addr, sizeof(addr)) < 0)
+		 handle_error("UDP bind");
+
+	// 让udp能发送广播数据
+	setsockopt(udpfd, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(int));
 }
 
 //上线广播
 void broad_cast_online_info(void)
 {
-	char buf[100]="";
+	char buf[BUFF_MAX]="";
 	struct sockaddr_in addr = {AF_INET};
 	int t = time((time_t *)NULL);
 	int len = sprintf(buf,"1:%d:%s:%s:%ld:%s", \
 				t,user_name,host_name,IPMSG_BR_ENTRY,user_name);
+
 	addr.sin_port = htons(PORT);
-	// addr.sin_addr.s_addr=inet_addr("255.255.255.255");
-	addr.sin_addr.s_addr = htonl(-1);	//modified by wangyanjun in 10/7/9
+	addr.sin_addr.s_addr=inet_addr("255.255.255.255");
+	//addr.sin_addr.s_addr = htonl(-1);	//modified by wangyanjun in 10/7/9
 	sendto(udpfd, buf, len, 0, (struct sockaddr*)&addr,sizeof(addr));	
 }
 
@@ -109,7 +110,7 @@ online(const char *user, const char *host)
 	//strcpy(user_name,user);
 	snprintf(user_name, sizeof(user_name), "%s", user);
 	//strcpy(host_name,host);
-	snprintf(user_host, sizeof(user_host), "%s", host);
+	snprintf(host_name, sizeof(host_name), "%s", host);
 	create_server();
 	broad_cast_online_info();
 }
