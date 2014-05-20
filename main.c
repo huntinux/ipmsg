@@ -21,6 +21,12 @@
 		* add log
 		* add history of communication
 		* add gui
+		* tab complete user name
+	BUGS:
+		* 如果用户用户名相同，信息会发送错误
+			应该检查用户名是否存在，如果存在则提示用户，然后给用户名提供一个
+			没有用到的用户名，或用户换一个没有用到的用户名
+		* 发送大文件的时候，进度现实不正常。
  * ************************************************************************/
 #include "myinclude.h"
 #include "time.h"
