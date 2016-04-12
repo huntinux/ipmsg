@@ -98,6 +98,8 @@ int main()
                     
                     if( cmd == IPMSG_BR_ENTRY )
                     {
+                        if(addr.sin_addr.s_addr == peer_addr.sin_addr.s_addr) continue; 
+
                         printf("find new client: %s-%s\n", username, hostname);
                         /* answer entrance */
                         t = time((time_t *)NULL);
