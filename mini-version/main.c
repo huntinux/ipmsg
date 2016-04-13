@@ -16,24 +16,14 @@
 #include <ifaddrs.h>
 #include "ipmsg.h"
 
-
-/*
-   const char * menu = " \n
-ls      :list users \n
-send    :user_ip message \n
-quit    \n
-"
-*/
-
-#define PORT 8989 
 #define buf_MAX 1024
 #define FDNUM 1
 #define INVALID_SOCKET -1
 
-const char *user_name = "client8989";
-const char *host_name = "host8989";
+const char *user_name = "default";
+const char *host_name = "default";
 
-int islocaladdr(struct in_addr addr)
+static int islocaladdr(struct in_addr addr)
 {
     struct ifaddrs *ifaddr, *ifa;
     int family, n, ret = 0;
@@ -141,7 +131,6 @@ int main(int argc, char *argv[])
     }
 
     const char *port = argv[1];
-
     int udpfd = create_and_bind(port);
     if(udpfd < 0) return -1;
 
@@ -191,9 +180,9 @@ int main(int argc, char *argv[])
                     char ver[256],username[256], hostname[256], other[256];
                     sscanf(buf, "%[^:]:%d:%[^:]:%[^:]:%lu:%s", ver, &t, username, hostname, &cmd, other);
 
+                    printf_address(udpfd, (struct sockaddr *)&peer_addr, peer_len, "Peer addr");
                     if( cmd == IPMSG_BR_ENTRY )
                     {
-                        printf_address(udpfd, (struct sockaddr *)&peer_addr, peer_len, "Peer addr");
                         if(islocaladdr(peer_addr.sin_addr))
                         {
                             fprintf(stderr, "local addr, ignore the data\n");
@@ -206,12 +195,13 @@ int main(int argc, char *argv[])
                         len = sprintf(buf,"1:%d:%s:%s:%lu:%s", t, user_name, host_name, IPMSG_ANSENTRY, user_name);
                         sendto(udpfd, buf, len, 0, (struct sockaddr*)&peer_addr, peer_len);
                     }
-                    else if( cmd == IPMSG_ANSENTRY)
+                    else if(cmd == IPMSG_ANSENTRY)
                     {
                         printf("find new client: %s-%s\n", username, hostname);
                     }
                     else
                     {
+
                     }
                 }
                 else
