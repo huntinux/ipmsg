@@ -13,6 +13,7 @@
 #include <netdb.h>
 #include <time.h>
 #include <poll.h>
+#include <ifaddrs.h>
 #include "ipmsg.h"
 
 
@@ -27,34 +28,122 @@ quit    \n
 #define PORT 8989 
 #define buf_MAX 1024
 #define FDNUM 1
+#define INVALID_SOCKET -1
 
 const char *user_name = "client8989";
 const char *host_name = "host8989";
 
-int main()
+int islocaladdr(struct in_addr addr)
 {
-    /* prepare UDP socket for receiving message from other clients */
-    int udpfd = socket(AF_INET, SOCK_DGRAM, 0);
-    if(udpfd < 0) 
-    {
-        perror("Socket UDP");
+    struct ifaddrs *ifaddr, *ifa;
+    int family, n, ret = 0;
+
+    if (getifaddrs(&ifaddr) == -1) {
+        perror("getifaddrs");
         return -1;
     }
 
-    struct sockaddr_in addr;
-    memset(&addr, 0, sizeof(struct sockaddr_in));
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(PORT);
-    addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    if( bind(udpfd, (struct sockaddr*)&addr, sizeof(addr)) < 0 )
-    {
-        perror("Bind UDP");
-        return -2;
+    /* Walk through linked list, maintaining head pointer so we
+       can free list later */
+    for (ifa = ifaddr, n = 0; ifa != NULL; ifa = ifa->ifa_next, n++) {
+        if (ifa->ifa_addr == NULL)
+            continue;
+
+        family = ifa->ifa_addr->sa_family;
+        if(family != AF_INET)
+            continue;
+
+        /* For an AF_INET interface address , check if addr is in them*/
+        struct sockaddr_in *sai = (struct sockaddr_in *)ifa->ifa_addr;
+        if(sai->sin_addr.s_addr == addr.s_addr)
+        {
+            /* Find addr in local addresses */
+            return 1;
+        }
     }
 
-    /* make udp broadcast */
-    int broadcast = 1;
-    setsockopt(udpfd, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(int));
+    if(ifa == NULL)
+        ret = 0; /* Not Found */
+
+    freeifaddrs(ifaddr);
+    return ret;
+}
+
+static void printf_address(int fd, struct sockaddr *in_addr, socklen_t in_len, const char *msg)
+{
+    char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
+    if (getnameinfo(in_addr, in_len, hbuf, sizeof hbuf, sbuf, sizeof sbuf, NI_NUMERICHOST | NI_NUMERICSERV) == 0)
+    {
+        printf("[%8d]%s:  (host=%s, port=%s)\n", fd, msg, hbuf, sbuf);
+    }
+}
+
+static int create_and_bind(const char *port)
+{
+    struct addrinfo hints;
+    struct addrinfo *result, *rp;
+    int s;
+    const char *address = NULL;
+    int sfd;
+
+    memset(&hints, 0, sizeof (struct addrinfo));
+    hints.ai_family = AF_UNSPEC;     /* Return IPv4 and IPv6 choices */
+    hints.ai_socktype = SOCK_DGRAM; /* We want a UDP socket */
+    hints.ai_flags = AI_PASSIVE;     /* All interfaces */
+
+    s = getaddrinfo(address, port, &hints, &result);
+    if (s != 0)
+    {
+        fprintf(stderr, "getaddrinfo: %s", gai_strerror(s));
+        return INVALID_SOCKET;
+    }
+
+    for (rp = result; rp != NULL; rp = rp->ai_next)
+    {
+        sfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+        if (sfd == INVALID_SOCKET)
+            continue;
+
+        /* Make broadcast */
+        int enable = 1;
+        if(setsockopt(sfd, SOL_SOCKET, SO_BROADCAST, &enable, sizeof(int)) < 0)
+        {
+            fprintf(stderr, "error setsockopt SO_REUSEADDR");
+        }
+
+        s = bind(sfd, rp->ai_addr, rp->ai_addrlen);
+        if (s == 0)
+        {
+            /* We managed to bind successfully! */
+            printf_address(sfd, rp->ai_addr, rp->ai_addrlen, "UDP bind to");
+            break;
+        }
+        close(sfd);
+    }
+
+    if (rp == NULL)
+    {
+        fprintf(stderr, "Could not bind\n");
+        sfd = INVALID_SOCKET;
+    }
+
+    freeaddrinfo(result);
+
+    return sfd;
+}
+
+int main(int argc, char *argv[])
+{
+    if(argc != 2)
+    {
+        fprintf(stderr, "Usage: %s [port]\n", basename(argv[0]));
+        return -1;
+    }
+
+    const char *port = argv[1];
+
+    int udpfd = create_and_bind(port);
+    if(udpfd < 0) return -1;
 
     /* broadcast */
     char buf[buf_MAX];
@@ -63,11 +152,17 @@ int main()
     int len = sprintf(buf,"1:%d:%s:%s:%ld:%s", \
             t,user_name,host_name,IPMSG_BR_ENTRY,user_name);
 
-    memset(&addr, 0, sizeof(struct sockaddr_in));
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(9090);
-    addr.sin_addr.s_addr=inet_addr("255.255.255.255");
-    sendto(udpfd, buf, len, 0, (struct sockaddr*)&addr,sizeof(addr));	
+    struct sockaddr_in broadcast_addr;
+    memset(&broadcast_addr, 0, sizeof(struct sockaddr_in));
+    broadcast_addr.sin_family = AF_INET;
+    broadcast_addr.sin_port = htons(atoi(port));
+    broadcast_addr.sin_addr.s_addr = htonl(INADDR_BROADCAST);
+    int ns = sendto(udpfd, buf, len, 0, (struct sockaddr*)&broadcast_addr,sizeof(broadcast_addr));	
+    if(ns  == -1)
+    {
+        perror("sendto");
+        return -4;
+    }
 
     /* add updfd to pollfd, start poll thread for waiting I/O on udpfd */
     struct pollfd pfd[FDNUM];
@@ -94,11 +189,16 @@ int main()
                     int t; 
                     unsigned long cmd = 0;
                     char ver[256],username[256], hostname[256], other[256];
-			        sscanf(buf, "%[^:]:%d:%[^:]:%[^:]:%lu:%s", ver, &t, username, hostname, &cmd, other);
-                    
+                    sscanf(buf, "%[^:]:%d:%[^:]:%[^:]:%lu:%s", ver, &t, username, hostname, &cmd, other);
+
                     if( cmd == IPMSG_BR_ENTRY )
                     {
-                        if(addr.sin_addr.s_addr == peer_addr.sin_addr.s_addr) continue; 
+                        printf_address(udpfd, (struct sockaddr *)&peer_addr, peer_len, "Peer addr");
+                        if(islocaladdr(peer_addr.sin_addr))
+                        {
+                            fprintf(stderr, "local addr, ignore the data\n");
+                            continue; 
+                        }
 
                         printf("find new client: %s-%s\n", username, hostname);
                         /* answer entrance */
