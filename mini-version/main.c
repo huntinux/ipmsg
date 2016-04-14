@@ -123,19 +123,26 @@ static int create_and_bind(const char *port)
     return sfd;
 }
 
-void test_send(int udpfd, const char *port)
+void ipmsg_send_msg(int udpfd, struct sockaddr_in *addr, socklen_t addrlen, const char * msg)
 {
-    char buf[100]="";
+    char buf[1024];
     int t = time((time_t *)NULL);
     int len = sprintf(buf,"1:%d:%s:%s:%ld:%s", \
-            t,user_name,host_name,IPMSG_BR_EXIT,"Message from X1 Carbon");
+            t,user_name,host_name,
+            IPMSG_SENDMSG | IPMSG_SENDCHECKOPT, 
+            msg);
+    sendto(udpfd, buf, len, 0, (struct sockaddr*)addr,addrlen);	
+}
+
+void test_send_msg(int udpfd)
+{
 
     struct sockaddr_in addr;
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
-    addr.sin_port   = htons(atoi(port));
+    addr.sin_port   = htons(9090);
     inet_pton(AF_INET, "192.168.5.252", &addr.sin_addr.s_addr);
-    sendto(udpfd, buf, len, 0, (struct sockaddr*)&addr,sizeof(addr));	
+    ipmsg_send_msg(udpfd, &addr, sizeof(addr), "hello");
 }
 
 
@@ -215,6 +222,8 @@ int main(int argc, char *argv[])
     pfd[0].fd = udpfd;
     pfd[0].events = POLLIN | POLLOUT;
     pfd[0].revents = 0;
+    struct sockaddr_in peer_addr;
+    socklen_t peer_len = sizeof(peer_addr);
     while(1)
     {
         memset( buf, '\0', sizeof( buf ) );
@@ -225,8 +234,6 @@ int main(int argc, char *argv[])
             int sfd = pfd[i].fd;
             if(pfd[i].revents & POLLIN)
             {
-                struct sockaddr_in peer_addr;
-                socklen_t peer_len = sizeof(peer_addr);
                 int nr = recvfrom(sfd, buf, sizeof(buf), 0, (struct sockaddr *)&peer_addr, &peer_len);
                 if(nr > 0)
                 {
@@ -238,8 +245,8 @@ int main(int argc, char *argv[])
                     char ver[256],username[256], hostname[256], other[256];
                     sscanf(buf, "%[^:]:%d:%[^:]:%[^:]:%lu:%s", ver, &t, username, hostname, &cmd, other);
                     char * extra_msg = strrchr(buf, ':');
-                    if(extra_msg) 
-                        printf("Get extra message: %s\n", extra_msg);
+                    if(extra_msg && (extra_msg + 1)) 
+                        printf("Get extra message: %s\n", ++extra_msg);
 
                     printf_address(udpfd, (struct sockaddr *)&peer_addr, peer_len, "Peer addr");
                     switch(GET_MODE(cmd))
@@ -275,6 +282,13 @@ int main(int argc, char *argv[])
 					            int len = sprintf(buf,"1:%d:%s:%s:%ld:%d",ct,user_name,host_name,IPMSG_RECVMSG, t);
 					            sendto(udpfd, buf, len, 0, (struct sockaddr*)&peer_addr, sizeof(peer_addr));
                             }
+                        case IPMSG_RECVMSG:
+                            /* the message sended by us has been received */
+                            printf("message send successfully.\n");
+                            break;
+                        case IPMSG_BR_EXIT:
+                            printf_address(udpfd, (struct sockaddr *)&peer_addr, peer_len, "Client exit");
+                            break;
                         default:
                             break;
                         }
@@ -297,7 +311,12 @@ int main(int argc, char *argv[])
                 }
 
                 /* Test for send message */
-                test_send(udpfd, port);
+                static int count = 1;
+                if(count)
+                {
+                    test_send_msg(udpfd);
+                    count--;
+                }
             }
             else
             {
