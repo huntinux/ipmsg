@@ -17,7 +17,7 @@
 #include <signal.h>
 #include "ipmsg.h"
 
-#define buf_MAX 1024
+#define BUF_MAX 1024
 #define FDNUM 1
 #define INVALID_SOCKET -1
 
@@ -179,6 +179,35 @@ static void SigHandler(int sig, siginfo_t *siginfo, void *ignore){
     }
 }
 
+#define PACKAGE_MAX_LEN 1024
+int prepare_package(char *dst, int dstlen, const char *username, 
+        const char * hostname, unsigned long cmd, const char * opt)
+{
+    if(!dst || !username || !hostname)
+        return -1;
+
+    /* maybe overflow */
+    int total_bytes = 
+        sizeof(unsigned long) * 3 + 
+        strlen(username) + 
+        strlen(hostname);
+    if(opt) total_bytes += strlen(opt);
+    if(total_bytes > dstlen)
+        return -2;
+
+    int nw = snprintf(dst, dstlen, 
+            "%d:%lu:%s:%s:%lu:",     /* package formate  */
+            IPMSG_VERSION,          /* ipmsg version */
+            time((time_t*)NULL),    /* package num */
+            username,               /* user name */
+            hostname,               /* host name */
+            cmd);                   /* command */
+    if(opt) 
+        nw += snprintf(dst + nw, dstlen - nw, "%s", opt);
+
+    return nw;
+}
+
 int main(int argc, char *argv[])
 {
     if(argc != 2)
@@ -192,11 +221,14 @@ int main(int argc, char *argv[])
     if(udpfd < 0) return -1;
 
     /* broadcast */
-    char buf[buf_MAX];
-    memset(buf, '\0', buf_MAX);
-    int t = time((time_t *)NULL);
-    int len = sprintf(buf,"1:%d:%s:%s:%ld:%s", \
-            t,user_name,host_name,IPMSG_BR_ENTRY,user_name);
+    char buf[BUF_MAX];
+    memset(buf, '\0', BUF_MAX);
+    int len = prepare_package(buf, BUF_MAX, user_name, host_name, IPMSG_BR_ENTRY, NULL);
+    if(len < 0)
+    {
+        fprintf(stderr, "message is too long\n");
+        return -1;
+    }
 
     struct sockaddr_in broadcast_addr;
     memset(&broadcast_addr, 0, sizeof(struct sockaddr_in));
@@ -245,7 +277,7 @@ int main(int argc, char *argv[])
                     char ver[256],username[256], hostname[256], other[256];
                     sscanf(buf, "%[^:]:%d:%[^:]:%[^:]:%lu:%s", ver, &t, username, hostname, &cmd, other);
                     char * extra_msg = strrchr(buf, ':');
-                    if(extra_msg && (extra_msg + 1)) 
+                    if(extra_msg && *(extra_msg + 1)) 
                         printf("Get extra message: %s\n", ++extra_msg);
 
                     printf_address(udpfd, (struct sockaddr *)&peer_addr, peer_len, "Peer addr");
