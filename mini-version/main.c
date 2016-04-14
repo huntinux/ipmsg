@@ -14,6 +14,7 @@
 #include <time.h>
 #include <poll.h>
 #include <ifaddrs.h>
+#include <signal.h>
 #include "ipmsg.h"
 
 #define buf_MAX 1024
@@ -122,6 +123,55 @@ static int create_and_bind(const char *port)
     return sfd;
 }
 
+void test_send(int udpfd, const char *port)
+{
+    char buf[100]="";
+    int t = time((time_t *)NULL);
+    int len = sprintf(buf,"1:%d:%s:%s:%ld:%s", \
+            t,user_name,host_name,IPMSG_BR_EXIT,"Message from X1 Carbon");
+
+    struct sockaddr_in addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_port   = htons(atoi(port));
+    inet_pton(AF_INET, "192.168.5.252", &addr.sin_addr.s_addr);
+    sendto(udpfd, buf, len, 0, (struct sockaddr*)&addr,sizeof(addr));	
+}
+
+
+void ipmsg_exit(int udpfd, const char *port)
+{
+    char buf[100]="";
+    int t = time((time_t *)NULL);
+    int len = sprintf(buf,"1:%d:%s:%s:%ld:%s", \
+            t,user_name,host_name,IPMSG_BR_EXIT,user_name);
+
+    struct sockaddr_in addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_port   = htons(atoi(port));
+    addr.sin_addr.s_addr = htonl(INADDR_BROADCAST);	
+    sendto(udpfd, buf, len, 0, (struct sockaddr*)&addr,sizeof(addr));	
+}
+
+int g_prepare_exit = 0;
+static void SigHandler(int sig, siginfo_t *siginfo, void *ignore){
+    switch (sig)
+    {
+        case SIGINT:
+            /* broadcast offline */
+            printf("Caught SIGINT! Shutdown\n");
+            g_prepare_exit = 1;
+            break;
+        case SIGUSR1:
+            break;
+        case SIGUSR2:
+            break;
+        default:
+            break;
+    }
+}
+
 int main(int argc, char *argv[])
 {
     if(argc != 2)
@@ -153,6 +203,13 @@ int main(int argc, char *argv[])
         return -4;
     }
 
+    /* signal handle */
+    struct sigaction sigact;
+    memset(&sigact, 0, sizeof(sigact));
+    sigact.sa_flags = SA_SIGINFO;
+    sigact.sa_sigaction = SigHandler;
+    sigaction(SIGINT, &sigact, NULL);
+
     /* add updfd to pollfd, start poll thread for waiting I/O on udpfd */
     struct pollfd pfd[FDNUM];
     pfd[0].fd = udpfd;
@@ -162,7 +219,8 @@ int main(int argc, char *argv[])
     {
         memset( buf, '\0', sizeof( buf ) );
         int n = poll(pfd, FDNUM, -1);
-        for(int i = 0; i < n; i++)
+        int i;
+        for(i = 0; i < n; i++)
         {
             int sfd = pfd[i].fd;
             if(pfd[i].revents & POLLIN)
@@ -179,41 +237,67 @@ int main(int argc, char *argv[])
                     unsigned long cmd = 0;
                     char ver[256],username[256], hostname[256], other[256];
                     sscanf(buf, "%[^:]:%d:%[^:]:%[^:]:%lu:%s", ver, &t, username, hostname, &cmd, other);
+                    char * extra_msg = strrchr(buf, ':');
+                    if(extra_msg) 
+                        printf("Get extra message: %s\n", extra_msg);
 
                     printf_address(udpfd, (struct sockaddr *)&peer_addr, peer_len, "Peer addr");
-                    if( cmd == IPMSG_BR_ENTRY )
+                    switch(GET_MODE(cmd))
                     {
-                        if(islocaladdr(peer_addr.sin_addr))
-                        {
-                            fprintf(stderr, "local addr, ignore the data\n");
-                            continue; 
-                        }
+                        case IPMSG_BR_ENTRY:
+                            if(islocaladdr(peer_addr.sin_addr))
+                            {
+                                fprintf(stderr, "local addr, ignore the data\n");
+                                continue; 
+                            }
 
-                        printf("find new client: %s-%s\n", username, hostname);
-                        /* answer entrance */
-                        t = time((time_t *)NULL);
-                        len = sprintf(buf,"1:%d:%s:%s:%lu:%s", t, user_name, host_name, IPMSG_ANSENTRY, user_name);
-                        sendto(udpfd, buf, len, 0, (struct sockaddr*)&peer_addr, peer_len);
-                    }
-                    else if(cmd == IPMSG_ANSENTRY)
-                    {
-                        printf("find new client: %s-%s\n", username, hostname);
+                            /* Todo: add user */
+                            printf("find new client: %s-%s\n", username, hostname);
+
+                            /* answer entrance */
+                            t = time((time_t *)NULL);
+                            len = sprintf(buf,"1:%d:%s:%s:%lu:%s", t, user_name, host_name, IPMSG_ANSENTRY, user_name);
+                            sendto(udpfd, buf, len, 0, (struct sockaddr*)&peer_addr, peer_len);
+                            break;
+
+                        case IPMSG_ANSENTRY:
+                            /* Todo: add user */
+                            printf("find new client: %s-%s\n", username, hostname);
+                            break;
+
+                        case IPMSG_SENDMSG:
+                            /* other client send message to us */
+                            if(extra_msg && (cmd & IPMSG_SENDCHECKOPT))
+                            {
+                                /* give a ack */ 
+                	            char buf[50]="";
+					            int ct = time((time_t *)NULL);
+					            int len = sprintf(buf,"1:%d:%s:%s:%ld:%d",ct,user_name,host_name,IPMSG_RECVMSG, t);
+					            sendto(udpfd, buf, len, 0, (struct sockaddr*)&peer_addr, sizeof(peer_addr));
+                            }
+                        default:
+                            break;
+                        }
                     }
                     else
                     {
-
+                        /* error occures */
+                        perror("recvfrom");
+                        break;
                     }
-                }
-                else
-                {
-                    /* error occures */
-                    perror("read");
-                    break;
-                }
             }
             else if(pfd[i].revents & POLLOUT)
             {
+                /* broadcast exit */
+                if(g_prepare_exit)
+                {
+                    ipmsg_exit(pfd[i].fd, port);
+                    g_prepare_exit = 0;
+                    exit(1);
+                }
 
+                /* Test for send message */
+                test_send(udpfd, port);
             }
             else
             {
