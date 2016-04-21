@@ -2,4 +2,4 @@
 *.o
 ipmsg
 *.swp
-
+build-release/

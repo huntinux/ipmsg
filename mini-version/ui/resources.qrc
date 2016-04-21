@@ -1,0 +1,13 @@
+<RCC>
+    <qresource prefix="/">
+        <file>icons/camera.png</file>
+        <file>icons/chat.png</file>
+        <file>icons/file.png</file>
+        <file>icons/friends.png</file>
+        <file>icons/group.png</file>
+        <file>icons/help.png</file>
+        <file>icons/history.png</file>
+        <file>icons/send.png</file>
+        <file>icons/voice.png</file>
+    </qresource>
+</RCC>
